@@ -1,0 +1,187 @@
+{{ $page := .page }}
+{{ $index := .index }}
+{{ $site := .site }}
+<div class="moment-row">
+
+    <div class="pure-g">
+
+        {{/* time info shown in the left (or above in small screens) */}}
+        <div class="pure-u-1 pure-u-sm-1-4">
+            <div class="time">
+                <div class="month-day">{{ $page.Date.Format "Jan 2"}}{{ if in (slice 1 21 31) $page.Date.Day}}st{{ else if in (slice 2 22) $page.Date.Day}}nd{{ else if in (slice 3 23) $page.Date.Day}}rd{{ else }}th{{ end }}</div>
+                <div class="year">{{ $page.Date.Format "2006"}}</div>
+            </div>
+        </div>
+
+        {{/* moment-main-content */}}
+        <div class="pure-u-1 pure-u-sm-3-4">
+            <div class="moment-content">
+                {{/* top mark */}}
+                {{ if gt $page.Params.top 0}}
+                <div class="top-mark" style="position: absolute; right: 5%;">
+                    <i class="fas fa-bookmark" style="color: #e76b4f;"></i>
+                </div>
+                {{ end }}
+
+                {{/* user info */}}
+                <div class="user-info">
+                    <div class="avatar-block">
+                        {{ with $page.Params.avatar }}
+                        <img src='{{ . }}' class="avatar">
+                        {{ else }}
+                        {{/* fixme check whether the default avatar path is url or not--> */}}
+                                {{ $src := $site.Params.sidebar.avatar.src }}
+                                {{ $avatar := resources.Get ($src) }}
+                                {{ $avatarResized := $avatar.Resize "300x" }}
+                                <img src='{{ $avatarResized.RelPermalink }}' class="avatar">
+                        {{ end }}
+                    </div>
+                    <div class="intro">
+                        {{ with $page.Params.name }}
+                        <div class="name">{{ . }}</div>
+                        {{ else }}
+                        <div class="name">{{ $site.Params.name }}</div>
+                        {{ end }}
+                        <div>
+                            {{ $tags_filtered := slice}}
+                            {{ with $page.Params.tags }}
+                                {{ range . }}
+                                    {{ with .}}
+                                    {{ $tags_filtered = $tags_filtered | append . }}
+                                    {{ end }}
+                                {{ end }}
+                            {{ end }}
+                            {{ with $tags_filtered }}
+                                {{ range . }}<span class="tag text-muted">{{ . }}</span>{{ end }}
+                            {{ end }}
+                        </div>
+                    </div>
+                </div>
+                    
+
+                <a href="{{ $page.RelPermalink }}">
+                    <div style="padding-left: 5px; padding-right: 5px;">
+                        {{/* Main text content */}}
+
+                        {{ if $site.Params.features.heti }}<div class="context heti">{{ else }}<div class="context">{{ end }}
+                            {{ $page.Content }}
+                        </div>
+
+                        {{/* add-on info 1: pictures */}}
+                        {{/* new pictures API `pictures` (combine single & multiple pictures)*/}}
+                        {{ $pictures_set := slice}}
+                        {{ $picture_caption := $page.Plain}}
+                        {{ with $page.Params.pictures }}
+                            {{ range . }}
+                                {{ with . }}
+                                    {{- $url := urls.Parse . -}}
+                                    {{- if or (eq $url.Scheme "http") (eq $url.Scheme "https") -}}
+                                        {{ $pictures_set = $pictures_set | append . }}
+                                    {{- else -}}
+                                        {{- /* Local URL, try to find it in page bundle */ -}}
+                                        {{- $pageResourceImage := $page.Resources.GetMatch (printf "%s" (. | safeURL)) -}}
+                                        
+                                        {{- if $pageResourceImage -}}
+                                            {{- /* If image is found under page bundle, return its relative permalink */ -}}
+                                            {{ $processedImageURL := $pageResourceImage.RelPermalink }}
+                                            {{ $pictures_set = $pictures_set | append $processedImageURL }}
+                                        {{- else -}}
+                                            {{- /* Can not find the image under page bundle, assume it's a relative linked image */ -}}
+                                            {{ $processedImageURL := relURL . }}
+                                            {{ $pictures_set = $pictures_set | append $processedImageURL }}
+                                        {{- end -}}
+                                    {{- end -}}
+                                {{ end }}
+                            {{ end }}
+                        {{ end }}
+
+                    
+
+                        {{ $video_caption := $page.Plain}}
+                        {{ with $page.Params.video }}
+                            <a data-src="{{ . }}" data-fancybox="video-gallery" data-caption={{ $video_caption }}>
+                                <video class="video-js" src="{{ . }}"></video>
+                            </a>
+                        {{ end }}
+
+                        {{ if (eq (len $pictures_set) 1) }}
+                            {{ range $pictures_set }}
+                                <img src="{{ . }}" class="single-pic" alt="Responsive image" data-fancybox="gallery" data-caption={{ $picture_caption }}></img>
+                            {{ end }}
+                        {{ end }}
+
+                        {{ if (gt (len $pictures_set) 1)}}
+                            {{ partial "moments/pic_set.html" (dict "pic_set" $pictures_set "other" $site.BaseURL "caption" $picture_caption) }}
+                        {{ end }}
+
+                        {{/* Probably DEPRECATED in the future: single picture (old version API `pic`)*/}}
+                        {{ with $page.Params.pic }}
+                            <img src="{{ . }}" class="single-pic" alt="Responsive image" data-fancybox="gallery" data-caption={{ $picture_caption }}></img>
+                        {{ end }}
+
+                        {{/* Probably DEPRECATED in the future: multiple pictures (old version API `pic_set`) */}}
+                        {{ $pic_set_filtered := slice}}
+                        {{ with $page.Params.pic_set }}
+                            {{ range . }}
+                                {{ with . }}
+                                {{ $pic_set_filtered = $pic_set_filtered | append . }}
+                                {{ end }}
+                            {{ end }}
+                        {{ end }}
+
+                        {{ with $pic_set_filtered }}
+                            {{ partial "moments/pic_set.html" (dict "pic_set" . "caption" $picture_caption) }}
+                        {{ end }}
+
+
+                        {{/* add-on info 2: hyperlink to other resourse (e.g webpage, Netease music, Bilibili Video) */}}
+                        {{ $link_link := $page.Params.link }}
+                        {{ $link_logo := $page.Params.link_logo }}
+                        {{ $link_text := $page.Params.link_text }}
+
+                        {{ with $page.Params.link }}
+                            {{ partial "moments/link-block.html" (dict "logo" $link_logo "a" $link_link "word" $link_text "baseurl"
+                            $site.BaseURL)}}
+                        {{ end }}
+
+                        {{/* Note info shown below the main content */}}
+                        <div class="moment-note">
+                            <p class="note">{{ $page.Date.Format "15:04" }} {{ $page.Params.note }}</p>
+                            <p class="noteMobile">{{ $page.Date.Format "2006-01-02 15:04" }} {{ $page.Params.note }}</p>
+                            <div class="buttons" style="display: flex;">
+                                {{ if $site.Params.experimental.comment }}<div class="comment-btn" id="comment-btn-{{ $index }}"><i class="far fa-comment"></i></div>{{ end }}
+                                <div class="like-btn"><i class="far fa-heart"></i></div>
+                            </div>
+                        </div>
+
+                        {{ if $site.Params.experimental.comment }}
+                        <div id="row-comment-{{ $index }}" style="display: none;">
+                            <div id="gitalk-container-{{ $index }}"></div>
+                        </div>
+                        <script type="text/javascript">
+                            var gitalk = new Gitalk({
+                                clientID: 'GitHub Application Client ID',
+                                clientSecret: 'GitHub Application Client Secret',
+                                repo: 'GitHub repo',
+                                owner: 'GitHub repo owner',
+                                admin: ['GitHub repo owner and collaborators, only these guys can initialize github issues'],
+                                id: '{{ $page.File }}',      // Ensure uniqueness and length less than 50
+                                distractionFreeMode: false  // Facebook-like distraction free mode
+                            })
+
+                            $("#comment-btn-{{ $index }}").on('click', function(){
+                                $("#row-comment-{{ $index }}").slideToggle("slow");
+                                gitalk.render('gitalk-container-{{ $index }}')
+                            });
+                        </script>
+                        {{ end }}
+                    </div>
+                </a>
+
+                <hr class="seperating_line">
+
+            </div>
+        </div>
+    </div>
+
+</div>

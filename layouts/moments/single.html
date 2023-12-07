@@ -1,0 +1,162 @@
+{{ define "main" }}
+
+{{- partial "moments/head.html" . -}}
+
+<div class="pure-g">
+
+    {{/* moment-main-content */}}
+    <div class="pure-u-1" style="margin-left: 10%;">
+        <div class="moment-content">
+            {{/* top mark */}}
+            {{ if gt .Params.top 0}}
+            <div class="top-mark" style="position: absolute; right: 5%;">
+                <i class="fas fa-bookmark" style="color: #e76b4f;"></i>
+            </div>
+            {{ end }}
+
+            {{/* user info */}}
+            <div class="user-info">
+                <div class="avatar-block">
+                    {{ with .Params.avatar }}
+                    <img src='{{ . }}' class="avatar">
+                    {{ else }}
+                    {{/* fixme check whether the default avatar path is url or not--> */}}
+                            {{ $src := .Site.Params.sidebar.avatar.src }}
+                            {{ $avatar := resources.Get ($src) }}
+                            {{ $avatarResized := $avatar.Resize "300x" }}
+                            <img src='{{ $avatarResized.RelPermalink }}' class="avatar">
+                    {{ end }}
+                </div>
+                <div class="intro">
+                    {{ with .Params.name }}
+                    <div class="name">{{ . }}</div>
+                    {{ else }}
+                    <div class="name">{{ .Site.Params.name }}</div>
+                    {{ end }}
+                    <div>
+                        {{ $tags_filtered := slice}}
+                        {{ with .Params.tags }}
+                            {{ range . }}
+                                {{ with .}}
+                                {{ $tags_filtered = $tags_filtered | append . }}
+                                {{ end }}
+                            {{ end }}
+                        {{ end }}
+                        {{ with $tags_filtered }}
+                            {{ range . }}<span class="tag text-muted">{{ . }}</span>{{ end }}
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+                
+
+            <a href="{{ .RelPermalink }}">
+                <div style="padding-left: 5px; padding-right: 5px;">
+                    {{/* Main text content */}}
+
+                    {{ if .Site.Params.features.heti }}<div class="context heti">{{ else }}<div class="context">{{ end }}
+                        {{ .Content }}
+                    </div>
+
+                    {{/* add-on info 1: pictures */}}
+                    {{/* new pictures API `pictures` (combine single & multiple pictures)*/}}
+                    {{ $pictures_set := slice}}
+                    {{ $picture_caption := .Plain}}
+                    {{ $page := .}}
+                    {{ with .Params.pictures }}
+                        {{ range . }}
+                            {{ with . }}
+                                {{- $url := urls.Parse . -}}
+                                {{- if or (eq $url.Scheme "http") (eq $url.Scheme "https") -}}
+                                    {{ $pictures_set = $pictures_set | append . }}
+                                {{- else -}}
+                                    {{- /* Local URL, try to find it in page bundle */ -}}
+                                    {{- $pageResourceImage := $page.Resources.GetMatch (printf "%s" (. | safeURL)) -}}
+                                    
+                                    {{- if $pageResourceImage -}}
+                                        {{- /* If image is found under page bundle, return its relative permalink */ -}}
+                                        {{ $processedImageURL := $pageResourceImage.RelPermalink }}
+                                        {{ $pictures_set = $pictures_set | append $processedImageURL }}
+                                    {{- else -}}
+                                        {{- /* Can not find the image under page bundle, assume it's a relative linked image */ -}}
+                                        {{ $processedImageURL := relURL . }}
+                                        {{ $pictures_set = $pictures_set | append $processedImageURL }}
+                                    {{- end -}}
+                                {{- end -}}
+                            {{ end }}
+                        {{ end }}
+                    {{ end }}
+
+                
+
+                    {{ $video_caption := .Plain}}
+                    {{ with .Params.video }}
+                        <a data-src="{{ . }}" data-fancybox="video-gallery" data-caption={{ $video_caption }}>
+                            <video class="video-js" src="{{ . }}"></video>
+                        </a>
+                    {{ end }}
+
+                    {{ if (eq (len $pictures_set) 1) }}
+                        {{ range $pictures_set }}
+                            <img src="{{ . }}" class="single-pic" alt="Responsive image" data-fancybox="gallery" data-caption={{ $picture_caption }}></img>
+                        {{ end }}
+                    {{ end }}
+
+                    {{ if (gt (len $pictures_set) 1)}}
+                        {{ partial "moments/pic_set.html" (dict "pic_set" $pictures_set "other" .Site.BaseURL "caption" $picture_caption) }}
+                    {{ end }}
+
+                    {{/* Probably DEPRECATED in the future: single picture (old version API `pic`)*/}}
+                    {{ with .Params.pic }}
+                        <img src="{{ . }}" class="single-pic" alt="Responsive image" data-fancybox="gallery" data-caption={{ $picture_caption }}></img>
+                    {{ end }}
+
+                    {{/* Probably DEPRECATED in the future: multiple pictures (old version API `pic_set`) */}}
+                    {{ $pic_set_filtered := slice}}
+                    {{ with .Params.pic_set }}
+                        {{ range . }}
+                            {{ with . }}
+                            {{ $pic_set_filtered = $pic_set_filtered | append . }}
+                            {{ end }}
+                        {{ end }}
+                    {{ end }}
+
+                    {{ with $pic_set_filtered }}
+                        {{ partial "moments/pic_set.html" (dict "pic_set" . "caption" $picture_caption) }}
+                    {{ end }}
+
+
+                    {{/* add-on info 2: hyperlink to other resourse (e.g webpage, Netease music, Bilibili Video) */}}
+                    {{ $link_link := .Params.link }}
+                    {{ $link_logo := .Params.link_logo }}
+                    {{ $link_text := .Params.link_text }}
+
+                    {{ with .Params.link }}
+                        {{ partial "moments/link-block.html" (dict "logo" $link_logo "a" $link_link "word" $link_text "baseurl"
+                        $page.Site.BaseURL)}}
+                    {{ end }}
+
+                    {{/* Note info shown below the main content */}}
+                    <div class="moment-note">
+                        <p class="note" style="display: block !important;">{{ .Date.Format "2006-01-02 15:04" }} {{ .Params.note }}</p>
+                        <div class="buttons" style="display: flex;">
+                            {{ if .Site.Params.experimental.comment }}<div class="comment-btn" id="comment-btn"><i class="far fa-comment"></i></div>{{ end }}
+                            <div class="like-btn"><i class="far fa-heart"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <hr class="seperating_line">
+
+        </div>
+    </div>
+</div>
+{{ partial "comments/include" . }}
+{{ partialCached "footer/footer" . }}
+
+{{ end }}
+
+{{ define "baseof" }}
+    {{ template "moments/single/baseof.html" . }}
+{{ end }}

@@ -1,0 +1,14 @@
+<!-- /layouts/moments/list.html -->
+
+{{ define "main" }}
+    <div class="container bodycontainer">
+        {{ $paginator := .Paginate ((where .Site.RegularPages "Type" "in" .Site.Params.momentsSection).ByParam "top") .Site.Params.moments.paginate}}
+        {{ range $i, $page := $paginator.Pages }}
+            {{$site := .Site}}
+            {{ partial "moments/row.html" (dict "page" $page "index" $i "site" $site) }}
+        {{ end }}
+    </div>
+
+    {{- partial "pagination.html" . -}}
+    {{- partial "footer/footer" . -}}
+{{ end }}

@@ -1,0 +1,38 @@
+<!-- Like button -->
+<script>
+    $(".fa-heart").click(function(){
+        if ($(this).attr("red") == 'true'){
+            $(this).animate({color:"#808080"});
+            $(this).attr("red", false);
+        } else {
+            $(this).animate({color:"#ff0000"});
+            $(this).attr("red", true);
+        }
+    });
+</script>
+
+
+<!-- videojs -->
+<script src="https://vjs.zencdn.net/8.0.4/video.min.js"></script>
+
+{{/* a pangu support */}}
+{{ if .Site.Params.features.pangu }}
+<!-- pangu.js -->
+<script>
+    pangu.spacingElementByClassName('moment-note');
+    pangu.spacingElementByClassName('context');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // listen to any DOM change and automatically perform spacing via MutationObserver()
+        pangu.autoSpacingPage();
+    });
+</script>
+{{ end }}
+
+
+{{ if .Site.Params.features.heti }}
+<script>
+    const heti = new Heti(document);
+    heti.autoSpacing();
+</script>
+{{ end }}
